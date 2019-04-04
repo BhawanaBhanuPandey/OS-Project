@@ -96,8 +96,6 @@ int main()
   pthread_t thread[100];
   printf("100 threads will be created and threadVar will be incremented each time by 1 ");
   
-  //sleep(3000);
-  //printf("Time to read output on the screen");
    
   for(z=0;z<100;z++)
   {
