@@ -1,119 +1,164 @@
-#include<stdio.h>
 #include<pthread.h>
-#include<stdlib.h>
-
+#include<stdio.h>
 #include<unistd.h>
-#include<stdbool.h>
-#define MIN_PID 500
-#define MAX_PID 3000
+#define MIN_PID 300
+#define MAX_PID 5000
 
-int allocate_map();
-int allocate_pid();
-void release_pid(int pid);
-
-int threadVar = 0;
-int i,j;
-pthread_mutex_t mutex;
-struct pid_tab
+int share = 0;
+pthread_mutex_t l;
+void *function1();
+void *function2();
+struct pidmanager   
 {
+
   int pid;
-  bool bitmap;
-  
-}pidArr[4700];
+  int bitmap;
 
-int allocate_map(void)
+}Array[4700];
+
+int allocate_map(void)                   
 {
-  for( i = MIN_PID, j=0; j<=MAX_PID;i++,j++)
-  {
-	pidArr[j].pid = i;
-	pidArr[j].bitmap = 0;
-  }
+  int i=MIN_PID,j=0;
 
-  if(i==MAX_PID && j==4700)     
+  while(i<MAX_PID)        		//Complexity - O(n)
   {
-	return 1;
+	Array[j].pid = i;
+	Array[j].bitmap = 0;
+	i++;
+	j++;
   }
-  else
-  {
-  	return -1;
-  }
+  if(i==MAX_PID && j==4700)
+    return 1;
+
+  else 
+    return -1;
+
 }
 
-int allocate_pid(void)
-{
-   for( i = MIN_PID, j=0; j<=MAX_PID;i++,j++)
-   {
-      if(pidArr[j].bitmap == 0)
-      {
-	  pidArr[j].pid = i;
-	  pidArr[j].bitmap = 1;
-	  return i;
-	  break;
-      }
-      else
-      {
-	return -1;
-      }
-   }
-  
-}
 
-void release_pid(int pid)
+int allocate_pid(void)                //Complexity - O(1)
 {
-  for( i=0;i<=4700;i++)
-  {
-     if(pidArr[i].pid == pid)
-     {
-	pidArr[i].bitmap = 0;
-     }
-  }
-}
-
- void *threadCall(void *voidA)
- {
-  int ret = allocate_pid();
-  while(threadVar < 100)
-  {
-	pthread_mutex_lock(&mutex);
-	if(threadVar >= 100)
+	int p;
+	X:printf("Enter the process id you need to allocate to process -");
+	scanf("%d",&p);
+	if(p<300 || p>5000)
 	{
-	      pthread_mutex_unlock(&mutex);
-	      break;
-	} 
-  threadVar++;
-  sleep(10);
-  printf("\nVALUE OF THREADVVAR : %d",threadVar);
+		printf("\nEntered wrong(300-5000)\n");
+		goto X;
+	}
+		
 
-  pthread_mutex_unlock(&mutex);
-  }
-  sleep(8);
-  release_pid(ret);
+	if(Array[p-300].bitmap == 0)
+	{
+	  Array[p-300].bitmap = 1;
+	  return p;
+	}
+
+  return -1;
+
+}
+
+void release_pid(int p)                   //Complexity - O(1)
+{
+
+	if(Array[p-300].bitmap == 1)
+	{
+	  Array[p-300].bitmap = 0;
+	  printf("\nPid _ %d released successfully\n",p);
+	}
+	else
+	{
+		printf("pid no released\n");
+	}
+
 }
 
 int main()
 {
-  int z = 0;
-  pthread_t thread[100];
-  printf("100 threads will be created and threadVar will be incremented each time by 1 ");
-  
-   
-  for(z=0;z<100;z++)
-  {
-     pthread_mutex_init(&mutex,NULL);
-     pthread_create(&thread[i],NULL,&threadCall,NULL);
-  }
-  
-   for(z=0;z<100;z++)
-  {
-     
-     pthread_join(thread[i],NULL);
-     pthread_mutex_unlock(&mutex);
-  }
-  
-  return 0;
+	int status;
+	pthread_t thread1;
+	pthread_t thread2;
+	status = allocate_map();
+	if(status==1)			//Complexity - O(1)
+	printf("\nAllocation of bit map to all the process is successfull\n");
+	else
+	{
+		printf("\nAllocation of bit map is unsuccessfull please try it again\n");
+		return 0;
+	}
+   	
+	pthread_mutex_init(&l,NULL);
+	pthread_create(&thread1,NULL,&function1,NULL); // thread1 created
+	pthread_create(&thread2,NULL,&function2,NULL); // thread2 created
+	pthread_join(thread1,NULL);
+	pthread_join(thread2,NULL);
+	
+    return 0;
+ }
 
+
+
+void *function1()                
+{
+        int ret,n,ar[4700];   
+	pthread_mutex_lock(&l);
+	printf("Enter the no. of processes -");
+	scanf("%d",&n);   
+	for(int i=1;i<=n;i++)				//Complexity- O(n)
+	{            
+		X:printf("\nProcess -%d\n",i);
+		 ret = allocate_pid();
+		 if(ret==-1)
+		{
+	
+    		printf("pid not allocated\n");
+			goto X;
+		}
+		ar[i]=ret;
+		printf("pid -%d allocated successfully\n",ret);
+   	}
+    
+    share++;     
+	for(int i=1;i<=n;i++)
+	{            
+		release_pid(ar[i]);	
+   	}
+    printf("\nprocess slept for a while\n");
+    sleep(1);
+    printf("\nShare Variable-%d\n",share);
+    pthread_mutex_unlock(&l);           
+    
 }
-
-
-
-
+void *function2()                
+{
+        int ret,n,ar[4700];
+	pthread_mutex_lock(&l);
+	printf("Enter the no. of processes -");
+	scanf("%d",&n);   
+	for(int i=1;i<=n;i++)				//Complexity- O(n)
+	{            
+		X:printf("\nProcess -%d\n",i);
+		 ret = allocate_pid();
+		 if(ret==-1)
+		{
+	
+    		printf("pid not allocated\n");
+			goto X;
+		}
+		ar[i]=ret;
+		printf("pid -%d allocated successfully\n",ret);
+   	}
+    
+    share++;     
+	for(int i=1;i<=n;i++)
+	{            
+		release_pid(ar[i]);	
+   	}
+                        
+    
+    printf("\nprocess slept for a while\n");
+    sleep(1);
+    printf("\nShare Variable-%d\n",share);
+    pthread_mutex_unlock(&l);           
+    
+}
